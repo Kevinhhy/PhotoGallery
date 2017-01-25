@@ -28,6 +28,18 @@ public class FlickerFetcher {
     private static final String TAG = "FlickerFetcher";
 
     private static final String API_KEY = "aff800ad6fda5acba630d364a6db9d4a";
+    private static final String GETRECENTS_METHOD = "flickr.photos.getRecent";
+    private static final String SEARCH_METHOD = "flickr.photos.search";
+    private static final Uri ENDPOINT = Uri.parse("https://api.flickr.com/services/rest/")
+            .buildUpon()
+            .appendQueryParameter("method", "flickr.photos.getRecent")
+            .appendQueryParameter("api_key", API_KEY)
+            .appendQueryParameter("format", "json")
+            .appendQueryParameter("nojsoncallback", "1")
+            .appendQueryParameter("extras", "url_s")
+            .build();
+
+
     public byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -56,20 +68,11 @@ public class FlickerFetcher {
         return new String (getUrlBytes(urlSepc));
     }
 
-    public List<GalleryItem> fetchItems(int i) {
+    public List<GalleryItem> downloadGalleryItems(String url) {
 
         List<GalleryItem> list = new ArrayList<>();
 
         try {
-            String url = Uri.parse("https://api.flickr.com/services/rest/")
-                    .buildUpon()
-                    .appendQueryParameter("method", "flickr.photos.getRecent")
-                    .appendQueryParameter("api_key", API_KEY)
-                    .appendQueryParameter("format", "json")
-                    .appendQueryParameter("nojsoncallback", "1")
-                    .appendQueryParameter("extras", "url_s")
-                    .appendQueryParameter("page", Integer.toString(i))
-                    .build().toString();
             String jsonString = getUrlString(url);
             parseItems(list, jsonString);
             Log.i(TAG, "Recieved JSON: " + jsonString);
@@ -78,6 +81,25 @@ public class FlickerFetcher {
         }
 
         return list;
+    }
+
+    private String buildUrl(String method, String query) {
+        Uri.Builder builder = ENDPOINT.buildUpon().appendQueryParameter("method", method);
+
+        if (method.equals(SEARCH_METHOD)) {
+            builder.appendQueryParameter("text", query);
+        }
+        return builder.build().toString();
+    }
+
+    public List<GalleryItem> fetchPhoto() {
+        String url = buildUrl(GETRECENTS_METHOD, null);
+        return downloadGalleryItems(url);
+    }
+
+    public List<GalleryItem> searchPhoto(String query) {
+        String url = buildUrl(SEARCH_METHOD, query);
+        return downloadGalleryItems(url);
     }
 
     public void parseItems(List<GalleryItem> list, String  json) throws IOException{
