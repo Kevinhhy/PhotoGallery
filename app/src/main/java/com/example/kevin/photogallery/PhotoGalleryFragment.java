@@ -185,10 +185,32 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         public void onBindViewHolder(PhotoHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
-            Drawable drawable = getResources().getDrawable(R.drawable.bill_up_close);
-            holder.bindImage(drawable);
-            System.out.println("bind");
-            mThumbnailDownload.queueThumbnail(holder, galleryItem.getUrl());
+            Bitmap bitmap = mThumbnailDownload.getCacheImage(galleryItem.getUrl());
+
+            if (bitmap == null) {
+                Drawable drawable = getResources().getDrawable(R.drawable.bill_up_close);
+                holder.bindImage(drawable);
+                System.out.println("bind");
+                mThumbnailDownload.queueThumbnail(holder, galleryItem.getUrl());
+            } else {
+                holder.bindImage(new BitmapDrawable(getResources(), bitmap));
+            }
+            preloadImage(position);
+        }
+
+        private void preloadImage(int position) {
+            final int imageBufferSize = 10;
+
+            int startPosition = Math.max(position - imageBufferSize, 0);
+            int endPosition = Math.max(position + imageBufferSize, mGalleryItems.size());
+
+            for (int i = startPosition; i <= endPosition; i++) {
+                if (i == position) {
+                    continue;
+                }
+
+                mThumbnailDownload.preloadImage(mGalleryItems.get(position).getUrl());
+            }
         }
 
         @Override
