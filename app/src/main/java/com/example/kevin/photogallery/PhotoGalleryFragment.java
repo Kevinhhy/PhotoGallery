@@ -146,6 +146,7 @@ public class PhotoGalleryFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         mThumbnailDownload.quit();
+        mThumbnailDownload.clearCache();
     }
 
     private void setupAdapter() {
