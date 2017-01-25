@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -88,9 +89,9 @@ public class PhotoGalleryFragment extends Fragment {
 
                 if (recyclerBottom == lastChildBottom && lastPosition == recyclerView.getLayoutManager().getItemCount() - 1) {
                     mInt++;
-//                    Toast.makeText(getActivity(), "第" + mInt + "页", Toast.LENGTH_SHORT).show();
-//                    updateItems();
-//                    setupAdapter();
+                    Toast.makeText(getActivity(), "第" + mInt + "页", Toast.LENGTH_SHORT).show();
+                    updateItems();
+                    setupAdapter();
                 }
             }
 
@@ -110,13 +111,14 @@ public class PhotoGalleryFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.fragment_photo_gallery, menu);
-        MenuItem searchItem = menu.findItem(R.id.menu_search);
-        SearchView searchView = (SearchView) searchItem.getActionView();
+        final MenuItem searchItem = menu.findItem(R.id.menu_search);
+        final SearchView searchView = (SearchView) searchItem.getActionView();
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 QueryPreferences.setStoredQuery(getActivity(),query);
+                mInt = 1;
                 updateItems();
                 return false;
             }
@@ -126,13 +128,23 @@ public class PhotoGalleryFragment extends Fragment {
                 return false;
             }
         });
+
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String query = QueryPreferences.getStoredQuery(getActivity());
+                searchView.setQuery(query, false);
+            }
+        });
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_clear_search:
+                mInt = 1;
                 QueryPreferences.setStoredQuery(getActivity(), null);
+                updateItems();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -213,10 +225,10 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
             if (mQuery == null) {
-                return new FlickerFetcher().fetchPhoto();
+                return new FlickerFetcher().fetchPhoto(mInt);
             }
             else {
-                return new FlickerFetcher().searchPhoto(mQuery);
+                return new FlickerFetcher().searchPhoto(mQuery,mInt);
             }
         }
 
