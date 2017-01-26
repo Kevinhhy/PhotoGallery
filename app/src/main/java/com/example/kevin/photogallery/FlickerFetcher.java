@@ -102,20 +102,35 @@ public class FlickerFetcher {
         return downloadGalleryItems(url);
     }
 
-    public void parseItems(List<GalleryItem> list, String  json) throws IOException{
+    public void parseItems(List<GalleryItem> list, String  json) throws IOException {
         //利用Gson库的fromJson方法创建一个GsonData对象
         //fromJson方法第一个参数为需要解析的JSON，第二个对象为存储数据的类，即为GsonData类
-        GsonData gsonData = new Gson().fromJson(json,GsonData.class );
-        for (int i = 0; i < gsonData.getPhotos().getPerpage(); i++) {
-            GalleryItem item = new GalleryItem();
-            item.setCaption(gsonData.getPhotos().getPhoto().get(i).getTitle());
-            item.setId(gsonData.getPhotos().getPhoto().get(i).getId());
+        GsonData gsonData = new Gson().fromJson(json, GsonData.class);
+        if (gsonData.getPhotos().getTotal() >= gsonData.getPhotos().getPerpage()) {
 
-            if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
-                continue;
+            for (int i = 0; i < gsonData.getPhotos().getPerpage(); i++) {
+                if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
+                    continue;
+                }
+                addItem(i, json, list);
             }
-            item.setUrl(gsonData.getPhotos().getPhoto().get(i).getUrl_s());
-            list.add(item);
+        } else {
+            for (int i = 0; i < gsonData.getPhotos().getTotal() ; i++) {
+                if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
+                    continue;
+                }
+                addItem(i, json, list);
+            }
         }
+    }
+
+    private void addItem(int i, String json, List<GalleryItem> list) {
+        GsonData gsonData = new Gson().fromJson(json, GsonData.class);
+        GalleryItem item = new GalleryItem();
+        item.setCaption(gsonData.getPhotos().getPhoto().get(i).getTitle());
+        item.setId(gsonData.getPhotos().getPhoto().get(i).getId());
+
+        item.setUrl(gsonData.getPhotos().getPhoto().get(i).getUrl_s());
+        list.add(item);
     }
 }
