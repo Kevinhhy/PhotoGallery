@@ -1,5 +1,6 @@
 package com.example.kevin.photogallery;
 
+import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -16,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
@@ -32,15 +34,21 @@ public class PhotoGalleryFragment extends Fragment {
 
     private static final String TAG = "PhotoGalleryFragment";
 
+    private static int mRecyclerViewRow = 3;
+
     private RecyclerView mRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
-    private int mInt = 1;
-    private static int mRecyclerViewRow = 3;
+    private int mInt = 0;
+    private ProgressBar mProgressBar;
+    private Callback mCallback;
 
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
     }
 
+    public interface Callback{
+        int getPages();
+    }
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate: fragment");
@@ -87,12 +95,14 @@ public class PhotoGalleryFragment extends Fragment {
                 int lastChildBottom = bottom.getBottom();
                 int recyclerBottom = recyclerView.getBottom() - recyclerView.getPaddingBottom();
                 int lastPosition = recyclerView.getLayoutManager().getPosition(bottom);
-
                 if (recyclerBottom == lastChildBottom && lastPosition == recyclerView.getLayoutManager().getItemCount() - 1) {
-                    mInt++;
-                    Toast.makeText(getActivity(), "第" + mInt + "页", Toast.LENGTH_SHORT).show();
-                    updateItems();
-                    setupAdapter();
+                    if (mInt < mCallback.getPages()) {
+                        mInt++;
+                        Toast.makeText(getActivity(), "第" + mInt + "页", Toast.LENGTH_SHORT).show();
+                        updateItems();
+                        setupAdapter();
+
+                    }
                 }
             }
 
@@ -101,9 +111,10 @@ public class PhotoGalleryFragment extends Fragment {
                 super.onScrollStateChanged(recyclerView, newState);
             }
         });
-
         setupAdapter();
-        System.out.println("view");
+
+        mProgressBar = (ProgressBar) v.findViewById(R.id.fragment_photo_gallery_progress_bar);
+        showProgressBar(true);
         return v;
 
     }
@@ -155,7 +166,7 @@ public class PhotoGalleryFragment extends Fragment {
 
     private void updateItems() {
         String query = QueryPreferences.getStoredQuery(getActivity());
-        new FetchItemTask(query).execute();
+        new FetchItemTask(query, this).execute();
     }
 
     @Override
@@ -166,6 +177,16 @@ public class PhotoGalleryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    private void showProgressBar(boolean isShow) {
+        if (isShow) {
+            mProgressBar.setVisibility(View.VISIBLE);
+            mRecyclerView.setVisibility(View.INVISIBLE);
+        } else {
+            mProgressBar.setVisibility(View.INVISIBLE);
+            mRecyclerView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void setupAdapter() {
@@ -185,7 +206,7 @@ public class PhotoGalleryFragment extends Fragment {
         public void bindGalleryItem(GalleryItem item) {
             Picasso.with(getActivity())
                     .load(item.getUrl())
-                    .placeholder(R.drawable.bill_up_close)
+                    .placeholder(R.drawable.basset)
                     .into(mPhotoView);
         }
         }
@@ -219,18 +240,29 @@ public class PhotoGalleryFragment extends Fragment {
 
     private class FetchItemTask extends AsyncTask<Void, Void, List<GalleryItem>> {
         String mQuery;
+        PhotoGalleryFragment mPhotoGalleryFragment;
 
-        public FetchItemTask(String query) {
+        public FetchItemTask(String query, PhotoGalleryFragment fragment) {
             mQuery = query;
+            mPhotoGalleryFragment = fragment;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            if (mPhotoGalleryFragment.isResumed()) {
+                mPhotoGalleryFragment.showProgressBar(true);
+            }
         }
 
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
+            FlickerFetcher flicker = new FlickerFetcher();
+            mCallback = flicker;
             if (mQuery == null) {
-                return new FlickerFetcher().fetchPhoto(mInt);
+                return flicker.fetchPhoto(mInt);
             }
             else {
-                return new FlickerFetcher().searchPhoto(mQuery,mInt);
+                return flicker.searchPhoto(mQuery,mInt);
             }
         }
 
@@ -238,6 +270,8 @@ public class PhotoGalleryFragment extends Fragment {
         protected void onPostExecute(List<GalleryItem> galleryItems) {
             mItems = galleryItems;
             setupAdapter();
+
+            mPhotoGalleryFragment.showProgressBar(false);
         }
     }
 }

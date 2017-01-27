@@ -8,6 +8,7 @@ public class GalleryItem {
     private String mCaption;
     private String mId;
     private String mUrl;
+    private int mPages;
 
     @Override
     public String toString() {
