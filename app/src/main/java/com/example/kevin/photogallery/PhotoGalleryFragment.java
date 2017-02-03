@@ -55,6 +55,9 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         setRetainInstance(true);
+
+        PollService.setServiceAlarm(getActivity(), true);
+
         updateItems();
     }
 
@@ -149,6 +152,13 @@ public class PhotoGalleryFragment extends Fragment {
                 searchView.setQuery(query, false);
             }
         });
+
+        MenuItem serviceItem = menu.findItem(R.id.menu_item_poll_service);
+        if (PollService.isServiceAlarmOn(getActivity())) {
+            serviceItem.setTitle(R.string.stop_polling);
+        } else {
+            serviceItem.setTitle(R.string.start_polling);
+        }
     }
 
     @Override
@@ -158,6 +168,11 @@ public class PhotoGalleryFragment extends Fragment {
                 mInt = 1;
                 QueryPreferences.setStoredQuery(getActivity(), null);
                 updateItems();
+                return true;
+            case R.id.menu_item_poll_service:
+                boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
+                PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+                getActivity().invalidateOptionsMenu();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
