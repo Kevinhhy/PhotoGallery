@@ -1,16 +1,21 @@
 package com.example.kevin.photogallery;
 
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.app.job.JobParameters;
+import android.app.job.JobService;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.ConnectivityManager;
+import android.os.AsyncTask;
 import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.util.Log;
 
 import java.util.List;
 
@@ -18,16 +23,16 @@ import java.util.List;
  * Created by kevin on 2017/2/3.
  */
 
-public class PollService extends IntentService {
+public class PollService extends IntentService{
     private static final String TAG = "PollService";
-    private static final int SERVICE_INTERVAL = 1000 * 60;
-
-    public static Intent newIntent(Context context) {
-        return new Intent(context, PollService.class);
-    }
+    private static final long SERVICE_INTERVAL = AlarmManager.INTERVAL_FIFTEEN_MINUTES;
 
     public PollService() {
         super(TAG);
+    }
+
+    public static Intent newIntent(Context context) {
+        return new Intent(context, PollService.class);
     }
 
     public static void setServiceAlarm(Context context, boolean isOn) {
@@ -41,6 +46,7 @@ public class PollService extends IntentService {
             alarmManager.cancel(pi);
             pi.cancel();
         }
+        QueryPreferences.setAlarmOn(context, isOn);
     }
 
     public static boolean isServiceAlarmOn(Context context) {
@@ -52,6 +58,7 @@ public class PollService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        Log.i(TAG, "onHandleIntent");
         if (!isNetworkAvailableAndConnected()) {
             return;
         }
@@ -87,11 +94,17 @@ public class PollService extends IntentService {
                     .setAutoCancel(true)
                     .build();
 
-            NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-            notificationManagerCompat.notify(0, notification);
+            showBackgroundNotification(0, notification);
         }
 
         QueryPreferences.setLastResultId(this, resultId);
+    }
+
+    public void showBackgroundNotification(int requesCode, Notification notification) {
+        Intent i = new Intent(PollJobService.ACTION_SHOW_NOTIFICATION);
+        i.putExtra(PollJobService.NOTIFICATION, notification);
+        i.putExtra(PollJobService.RESULT_CODE, requesCode);
+        sendOrderedBroadcast(i, PollJobService.PERM_PRIVATE, null, null, Activity.RESULT_OK, null, null);
     }
 
     private boolean isNetworkAvailableAndConnected() {

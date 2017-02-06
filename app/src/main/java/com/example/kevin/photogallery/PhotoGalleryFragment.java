@@ -1,7 +1,12 @@
 package com.example.kevin.photogallery;
 
 import android.app.ProgressDialog;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
+import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.view.menu.MenuBuilder;
@@ -30,7 +35,7 @@ import java.util.List;
  * Created by kevin on 2017/1/21.
  */
 
-public class PhotoGalleryFragment extends Fragment {
+public class PhotoGalleryFragment extends VisibleFragment {
 
     private static final String TAG = "PhotoGalleryFragment";
 
@@ -55,9 +60,6 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         setRetainInstance(true);
-
-        PollService.setServiceAlarm(getActivity(), true);
-
         updateItems();
     }
 
@@ -154,10 +156,20 @@ public class PhotoGalleryFragment extends Fragment {
         });
 
         MenuItem serviceItem = menu.findItem(R.id.menu_item_poll_service);
-        if (PollService.isServiceAlarmOn(getActivity())) {
-            serviceItem.setTitle(R.string.stop_polling);
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP) {
+            if (PollService.isServiceAlarmOn(getActivity())) {
+                serviceItem.setTitle(R.string.stop_polling);
+            } else {
+                serviceItem.setTitle(R.string.start_polling);
+            }
         } else {
-            serviceItem.setTitle(R.string.start_polling);
+            Log.i(TAG, "sdk version: " + Build.VERSION.SDK_INT);
+            final int JOB_ID = 1;
+            if (isSchedulerCreated(JOB_ID)) {
+                serviceItem.setTitle(R.string.stop_polling);
+            } else {
+                serviceItem.setTitle(R.string.start_polling);
+            }
         }
     }
 
@@ -170,13 +182,46 @@ public class PhotoGalleryFragment extends Fragment {
                 updateItems();
                 return true;
             case R.id.menu_item_poll_service:
-                boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
-                PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP) {
+                    Log.i(TAG, "IntentService start");
+                    boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
+                    PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+                } else {
+                    final int JOB_ID = 1;
+                    JobScheduler schedular = (JobScheduler) getActivity().getSystemService(Context.JOB_SCHEDULER_SERVICE);
+
+                    if (isSchedulerCreated(JOB_ID)) {
+                        Log.i(TAG, "Jobservice canceled");
+                        schedular.cancel(JOB_ID);
+                    } else {
+                        Log.i(TAG, "Jobservice start");
+
+                        JobInfo jobinfo = new JobInfo.Builder(JOB_ID, new ComponentName(getActivity(), PollJobService.class))
+                                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                                .setPeriodic(1000 * 6)
+                                .setPersisted(true)
+                                .build();
+                        schedular.schedule(jobinfo);
+                    }
+                }
                 getActivity().invalidateOptionsMenu();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private boolean isSchedulerCreated(int id) {
+        JobScheduler scheduler = (JobScheduler) getActivity().getSystemService(Context.JOB_SCHEDULER_SERVICE);
+
+        boolean hasCreated = false;
+        for (JobInfo jobinfo : scheduler.getAllPendingJobs()) {
+            if (jobinfo.getId() == id) {
+                hasCreated = true;
+            }
+        }
+        QueryPreferences.setAlarmOn(getActivity(), hasCreated);
+        return hasCreated;
     }
 
     private void updateItems() {
