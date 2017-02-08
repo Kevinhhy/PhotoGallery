@@ -114,24 +114,25 @@ public class FlickerFetcher implements PhotoGalleryFragment.Callback {
                 if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
                     continue;
                 }
-                addItem(i, json, list, gsonData);
+                addItem(i, list, gsonData);
             }
         } else {
             for (int i = 0; i < gsonData.getPhotos().getTotal() ; i++) {
                 if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
                     continue;
                 }
-                addItem(i, json, list,gsonData);
+                addItem(i, list, gsonData);
             }
         }
     }
 
-    private void addItem(int i, String json, List<GalleryItem> list, GsonData gsonData) {
+    private void addItem(int i, List<GalleryItem> list, GsonData gsonData) {
         GalleryItem item = new GalleryItem();
         item.setCaption(gsonData.getPhotos().getPhoto().get(i).getTitle());
         item.setId(gsonData.getPhotos().getPhoto().get(i).getId());
 
         item.setUrl(gsonData.getPhotos().getPhoto().get(i).getUrl_s());
+        item.setOwner(gsonData.getPhotos().getPhoto().get(i).getOwner());
         list.add(item);
     }
 

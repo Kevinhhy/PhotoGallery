@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">PhotoGallery</string>
-    <string name="search">Search</string>
-    <string name="clear_search">Clear Search</string>
-    <string name="start_polling">Start Polling</string>
-    <string name="stop_polling">Stop Polling</string>
-    <string name="new_pictures_title">New PhotoGallery Pictures</string>
-    <string name="new_pictures_text">You have new pictures</string>
+    <string name="search">搜索</string>
+    <string name="clear_search">清除记录</string>
+    <string name="start_polling">开启通知</string>
+    <string name="stop_polling">停止通知</string>
+    <string name="new_pictures_title">更新</string>
+    <string name="new_pictures_text">您有新的图片待看！</string>
 </resources>

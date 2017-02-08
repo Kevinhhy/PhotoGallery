@@ -5,6 +5,7 @@ import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -255,21 +256,33 @@ public class PhotoGalleryFragment extends VisibleFragment {
         }
     }
 
-    private class PhotoHolder extends RecyclerView.ViewHolder {
+    private class PhotoHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private ImageView mPhotoView;
+        private GalleryItem mGalleryItem;
 
         public PhotoHolder(View itemView) {
             super(itemView);
             mPhotoView = (ImageView) itemView.findViewById(R.id.fragment_photo_image_view);
+            itemView.setOnClickListener(this);
         }
 
-        public void bindGalleryItem(GalleryItem item) {
+        public void bindDrawable(GalleryItem item) {
             Picasso.with(getActivity())
                     .load(item.getUrl())
                     .placeholder(R.drawable.basset)
                     .into(mPhotoView);
         }
+
+        public void bindGalleryItem(GalleryItem item) {
+            mGalleryItem = item;
         }
+
+        @Override
+        public void onClick(View v) {
+            Intent i = PhotoPageActivity.newIntent(getActivity(), mGalleryItem.getPhotoPageUri());
+            startActivity(i);
+        }
+    }
 
     private class PhotoAdapter extends RecyclerView.Adapter<PhotoHolder> {
 
@@ -290,6 +303,7 @@ public class PhotoGalleryFragment extends VisibleFragment {
         public void onBindViewHolder(PhotoHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
             holder.bindGalleryItem(galleryItem);
+            holder.bindDrawable(galleryItem);
         }
 
         @Override
