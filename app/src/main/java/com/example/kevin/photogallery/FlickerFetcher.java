@@ -41,6 +41,7 @@ public class FlickerFetcher implements PhotoGalleryFragment.Callback {
             .build();
 
     private GsonData gsonData;
+    private int mPage;
 
     public byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
@@ -95,11 +96,13 @@ public class FlickerFetcher implements PhotoGalleryFragment.Callback {
     }
 
     public List<GalleryItem> fetchPhoto(int page) {
+        mPage = page;
         String url = buildUrl(GETRECENTS_METHOD, null, page);
         return downloadGalleryItems(url);
     }
 
     public List<GalleryItem> searchPhoto(String query, int page) {
+        mPage = page;
         String url = buildUrl(SEARCH_METHOD, query, page);
         return downloadGalleryItems(url);
     }
@@ -109,12 +112,20 @@ public class FlickerFetcher implements PhotoGalleryFragment.Callback {
         //fromJson方法第一个参数为需要解析的JSON，第二个对象为存储数据的类，即为GsonData类
         gsonData = new Gson().fromJson(json, GsonData.class);
         if (gsonData.getPhotos().getTotal() >= gsonData.getPhotos().getPerpage()) {
-
-            for (int i = 0; i < gsonData.getPhotos().getPerpage(); i++) {
-                if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
-                    continue;
+            if (gsonData.getPhotos().getTotal() - mPage * gsonData.getPhotos().getPerpage() >= 0) {
+                for (int i = 0; i < gsonData.getPhotos().getPerpage(); i++) {
+                    if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
+                        continue;
+                    }
+                    addItem(i, list, gsonData);
                 }
-                addItem(i, list, gsonData);
+            } else {
+                for (int i = 0; i < gsonData.getPhotos().getTotal() - gsonData.getPhotos().getPerpage() * (mPage - 1) ; i++) {
+                    if (gsonData.getPhotos().getPhoto().get(i).getUrl_s() == null) {
+                        continue;
+                    }
+                    addItem(i, list, gsonData);
+                }
             }
         } else {
             for (int i = 0; i < gsonData.getPhotos().getTotal() ; i++) {
